@@ -9,3 +9,6 @@ data/stocks.json
 dashboard.html
 __pycache__/
 *.pyc
+
+# real identifiers for leakcheck.sh — never committed
+.leakpatterns
