@@ -12,3 +12,7 @@ __pycache__/
 
 # real identifiers for leakcheck.sh — never committed
 .leakpatterns
+
+# one-time local remediation tool; its comments name the very identifiers
+# leakcheck exists to catch, so it is never published
+fix-identity.sh
