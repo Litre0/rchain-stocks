@@ -7,6 +7,9 @@ Every tokenized stock on the chain, every pool that quotes a memecoin against on
 of those are actually trading right now — enumerated from the chain itself rather than from a
 vendor's listing endpoint.
 
+**Live site:** https://litre0.github.io/rchain-stocks *(published once the refresh workflow
+ships — see `BUILD-PLAN.md`)*
+
 > ⚠️ **Not financial advice. Not a signal service.** This is a data and verification tool.
 > Most memecoins on any chain go to zero. Do your own research, and never risk money you
 > cannot afford to lose.

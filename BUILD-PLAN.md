@@ -106,8 +106,11 @@ restore actions/cache (data/)  →  pipeline/pools.py   (incremental)
 - `concurrency` with `cancel-in-progress: false`, so a slow sweep is never cut mid-run.
 - A cache miss is survivable: `pools.py --full` cold-rebuilds in ~90s of sweeping.
 
-**Done when:** two consecutive scheduled runs succeed, the second is incremental, and
-`git count-objects -vH` shows no 20 MB blob in history.
+Enable Pages on first deploy (Settings → Pages → source: GitHub Actions). The published site
+is **https://litre0.github.io/rchain-stocks**.
+
+**Done when:** two consecutive scheduled runs succeed, the second is incremental,
+`git count-objects -vH` shows no 20 MB blob in history, and the Pages URL serves the site.
 
 ---
 
