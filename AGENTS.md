@@ -19,6 +19,9 @@ python3 pipeline/verify.py
 
 Python 3 standard library only — no dependencies, no build step, no server.
 
-**A cold run takes about an hour** (`pools.py` ~27 min, `symbols.py` ~17 min, both measured on
-a fresh clone); warm refreshes take minutes. `collect.py` is rate-limit paced on purpose.
-None of it is hung. Never run the stages in parallel. Never commit `data/`.
+**Refreshing is slow.** Measured: `pools.py` ~27 min and `symbols.py` ~17 min (cold only, they
+checkpoint), and `live.py` **~46 min for the default 6h window on every run** — it keeps no
+cursor and re-sweeps. Cost is linear in the window, so a routine refresh is
+`./refresh.sh --window 1h` (~10 min all in); `--window 24h` is ~3 hours. `--quick` skips
+discovery but still sweeps. Nothing is hung when quiet. Never run stages in parallel. Never
+commit `data/`.

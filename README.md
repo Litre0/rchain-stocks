@@ -98,16 +98,34 @@ python3 pipeline/verify.py             # assertions
 
 </details>
 
-**The first run takes about an hour**, and that is expected. Measured on a fresh clone:
-`pools.py` 27 min sweeping pool-creation events from genesis, `symbols.py` 17 min reading a
-ticker for every counterparty, plus the liveness sweep and pricing. Both print little while
-they work — they are not hung.
+### How long a refresh takes
 
-Both checkpoint to `data/`, so **every later refresh resumes from a cursor and takes
-minutes**, not an hour. Raw state is gitignored (`pools.json` alone is 20 MB and goes stale
-within minutes), which is why the clone ships the rendered HTML instead of the JSON behind
-it. If you only want current prices on pools already known, `./refresh.sh --quick` skips both
-slow stages.
+All measured on a real run, not estimated. **A refresh is minutes-to-an-hour, not seconds** —
+budget for it.
+
+The first run pays two one-off costs: `pools.py` 27 min sweeping pool-creation events from
+genesis, and `symbols.py` 17 min reading a ticker for every counterparty. Both checkpoint to
+`data/`, so later runs skip them.
+
+What does *not* get cheaper is the liveness sweep. `live.py` keeps no cursor and re-sweeps its
+entire window every run. That window is the dominant cost, and it scales linearly:
+
+| `./refresh.sh --window` | blocks swept | `live.py` takes |
+|---|---|---|
+| `30m` | ~18k | ~4 min |
+| `1h` | ~36k | ~8 min |
+| `6h` *(default)* | 213k | **~46 min** (measured) |
+| `24h` | ~854k | **~3 hours** |
+
+So for a routine refresh use **`./refresh.sh --window 1h`** — about 10 minutes all in. The 6h
+default matches the shipped snapshot and shows more pools, but costs three quarters of an
+hour. Only reach for `--window 24h` deliberately.
+
+`--quick` skips pool and ticker discovery, but still runs the sweep — it does not rescue a 6h
+window. None of these stages is hung when quiet; they print little while sweeping.
+
+Raw state is gitignored (`pools.json` alone is 20 MB and goes stale within minutes), which is
+why the clone ships the rendered HTML instead of the JSON behind it.
 
 `collect.py` is the wall-clock cost — GeckoTerminal's free tier is ~30 calls/min and the
 collector paces itself to ~23/min to stay under it, so a refresh is minutes rather than
