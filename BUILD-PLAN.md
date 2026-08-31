@@ -1,4 +1,13 @@
-# Build plan — live public site
+# Build plan — live public site (PARKED, not built)
+
+> **Status: designed, deliberately not implemented.** This repo is local-only by choice —
+> you clone it and open `dashboard.html` off disk. Nothing here is deployed, there is no
+> GitHub Pages site at the URL mentioned below, and the refresh workflow does not exist.
+>
+> This document is kept because the design is sound and the measurements in it are real. If
+> you ever want to host this, start here. If you just want to use the dashboard, you want
+> `README.md`; if you are an agent refreshing it, you want `CLAUDE.md`.
+
 
 Tasks are deliberately small, independently verifiable and **resumable**: no task depends on
 unsaved state from another, so a session that dies mid-way restarts at a known-good boundary

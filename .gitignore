@@ -1,12 +1,12 @@
-# Raw pipeline state: pools.json alone is 20 MB and would add ~1 GB/month of
-# git history on a 30-minute cron. It lives in the Actions cache instead.
+# Raw pipeline state. pools.json alone is 20 MB and goes stale within minutes,
+# so it is rebuilt locally rather than committed. dashboard.html IS committed --
+# it has the snapshot inlined, so a fresh clone opens with data already in it.
 data/pools.json
 data/tokens.json
 data/snapshot.json
 data/live.json
 data/live_1h.json
 data/stocks.json
-dashboard.html
 __pycache__/
 *.pyc
 
