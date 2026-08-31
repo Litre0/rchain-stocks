@@ -60,19 +60,43 @@ The committed snapshot was generated `2026-08-30T11:45:45Z` over a 6h liveness w
 
 ## Refreshing
 
-The dashboard is a snapshot, not a live feed. To regenerate it, run the pipeline — Python 3
+The dashboard is a snapshot, not a live feed. To regenerate it from the chain — Python 3
 standard library only, **no API keys, no accounts, no install**:
 
 ```bash
-python3 pipeline/registry.py           # 203 stock tokens from the factory   (seconds)
+./refresh.sh
+```
+
+Then reload the page. That is the whole thing. It works out whether this is a fresh clone or
+an update, runs the pipeline stages in the right order, verifies the result, and prints the
+`file://` path to reopen.
+
+```bash
+./refresh.sh --quick        # prices only; skips pool/ticker discovery (fastest)
+./refresh.sh --full         # re-sweep pool discovery from genesis
+./refresh.sh --window 24h   # widen the liveness window (default 6h)
+```
+
+Use the default when you want **new launches** to show up; `--quick` when you only want
+current prices on pools already known.
+
+<details>
+<summary>Running the stages by hand</summary>
+
+The order is fixed — each stage reads what the previous one wrote. Never run them in
+parallel; they chain through files and share one rate-limit budget.
+
+```bash
+python3 pipeline/registry.py           # 203 stock tokens from the factory   (~20 s)
 python3 pipeline/pools.py              # every stock-paired pool ever created (slow once, then incremental)
 python3 pipeline/symbols.py            # ticker/name per counterparty + impostor dating
 python3 pipeline/live.py --window 6h   # which pools are actually trading
 python3 pipeline/collect.py            # price the live set via GeckoTerminal
 python3 pipeline/render.py             # -> dashboard.html
+python3 pipeline/verify.py             # assertions
 ```
 
-Then reload the page.
+</details>
 
 **The first run is the slow one.** `pools.py` sweeps the chain from genesis and `symbols.py`
 reads a ticker for every counterparty; budget several minutes each. Both checkpoint to
@@ -80,22 +104,28 @@ reads a ticker for every counterparty; budget several minutes each. Both checkpo
 (`pools.json` alone is 20 MB and goes stale within minutes), which is why the clone ships the
 rendered HTML instead of the JSON behind it.
 
-Day to day you only need the last three:
-
-```bash
-python3 pipeline/live.py --window 6h && python3 pipeline/collect.py && python3 pipeline/render.py
-```
-
 `collect.py` is the wall-clock cost — GeckoTerminal's free tier is ~30 calls/min and the
-collector paces itself to ~23/min to stay under it. `python3 pipeline/verify.py` runs the
-assertion battery when you want to check nothing has regressed.
+collector paces itself to ~23/min to stay under it, so a refresh is minutes rather than
+seconds. That pacing is deliberate; raising it trips a 429 and the run produces nothing.
 
 ### Refreshing with Claude or another LLM
 
-`CLAUDE.md` in this repo is a runbook written for a coding agent: the refresh order, how long
-each stage should take, what the failure modes look like, and the invariants that must not be
-broken. Point Claude Code (or any agent that reads repo instructions) at this directory and
-ask it to refresh the dashboard — it will read that file and drive the pipeline for you.
+The repo ships a **Claude Code skill**. Clone it, open Claude Code in the directory, and just
+ask — "refresh the dashboard", "what's trading against TSLA", "is this GME the real one":
+
+```
+$ claude
+> refresh the dashboard
+```
+
+The skill (`.claude/skills/refresh-dashboard/`) is picked up automatically from the repo. It
+tells the agent how stale the snapshot is, which refresh path to take, how long each stage
+should take so it doesn't mistake slow for hung, what the failure modes mean, and — usefully —
+how to answer questions straight out of `data/snapshot.json` instead of making you read a
+table. It also carries the invariants that must not be broken.
+
+`CLAUDE.md` and `AGENTS.md` cover the same ground as plain context files, for agents that read
+those instead of skills.
 
 ---
 
