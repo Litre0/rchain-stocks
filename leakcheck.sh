@@ -51,6 +51,31 @@ else
   echo "${YEL}note${NC}  no .leakpatterns file - only generic patterns were checked"
 fi
 
+# Commit MESSAGES, not just file contents. Trailers added by tooling (session
+# URLs, ticket links, internal hostnames) never appear in the working tree, so
+# a contents-only scan reports clean while git log publishes them.
+if git rev-parse HEAD >/dev/null 2>&1; then
+  msgs=$(git log --format='%H%n%B' --all 2>/dev/null)
+  msgleak=$(printf '%s\n' "$msgs" \
+    | grep -InEe 'claude\.ai/code/session|chatgpt\.com/c/|/home/[a-z0-9_-]+|/Users/[a-z0-9_-]+|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}' | head -8)
+  if [ -n "$msgleak" ]; then
+    printf '%s  %s\n' "${RED}LEAK${NC}" "identifier in commit message history"
+    printf '%s\n' "$msgleak" | sed 's/^/        /'
+    hits=$((hits+1))
+  fi
+  if [ -f .leakpatterns ]; then
+    while IFS= read -r pp; do
+      [ -z "$pp" ] || [ "${pp:0:1}" = "#" ] && continue
+      out=$(printf '%s\n' "$msgs" | grep -InEe "$pp" | head -4)
+      if [ -n "$out" ]; then
+        printf '%s  %s\n' "${RED}LEAK${NC}" "personal identifier in commit message: $pp"
+        printf '%s\n' "$out" | sed 's/^/        /'
+        hits=$((hits+1))
+      fi
+    done < .leakpatterns
+  fi
+fi
+
 if git rev-parse HEAD >/dev/null 2>&1; then
   me=$(git config user.email)
   meta=$(git log --format='%an <%ae>%n%cn <%ce>' | sort -u | grep -v "<$me>")
