@@ -8,7 +8,7 @@ fails -- which is the entire point.
 
     python3 pipeline/verify.py
 """
-import os, sys
+import json, os, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import chain as C
@@ -28,12 +28,67 @@ def check(name, cond, detail=""):
         print(f"  FAIL  {name}" + (f"  ({detail})" if detail else ""))
 
 
+def load_registry():
+    """Prefer live pipeline state, fall back to the committed fixture.
+
+    data/ is gitignored, so on a fresh clone data/stocks.json does not exist.
+    fixtures/stocks.json is that same 203-token registry, committed precisely
+    so the registry assertions still run offline instead of crashing.
+    """
+    reg = C.load("stocks.json")
+    if reg:
+        return reg, "data/stocks.json"
+    fx = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                      "fixtures", "stocks.json")
+    if os.path.exists(fx):
+        with open(fx) as f:
+            return json.load(f), "fixtures/stocks.json"
+    return None, None
+
+
+def dashboard_checks():
+    """Assertions over the rendered artifact.
+
+    These are the ones that matter on a fresh clone, where dashboard.html is
+    committed but raw pipeline state is not.
+    """
+    dash = os.path.join(os.path.dirname(C.DATA), "dashboard.html")
+    if not os.path.exists(dash):
+        return
+    print("\ndashboard")
+    html = open(dash).read()
+    check("no fetch() -- data must be inlined for file://", "fetch(" not in html)
+    # Scan the pipeline modules, not this file -- verify.py names the header in
+    # its own check text, which matched itself.
+    hdr = "User" + "-Agent"
+    # The modules live beside THIS file, not beside the rendered dashboard --
+    # dashboard.html sits at the repo root, whose directory holds no .py at
+    # all, so scanning there would pass on an empty set.
+    srcdir = os.path.dirname(os.path.abspath(__file__))
+    spoofers = [f for f in sorted(os.listdir(srcdir))
+                if f.endswith(".py") and f != os.path.basename(__file__)
+                and hdr in open(os.path.join(srcdir, f)).read()]
+    check("no browser User-Agent spoofing anywhere in the pipeline",
+          not spoofers, ", ".join(spoofers) or "clean: Blockscout never touched")
+    check("search index present", "tokenList" in html)
+
+
+def report():
+    print(f"\n{ok} passed, {fail} failed")
+    sys.exit(1 if fail else 0)
+
+
 def main():
-    reg, pl = C.load("stocks.json"), C.load("pools.json")
+    reg, reg_src = load_registry()
+    pl = C.load("pools.json")
     toks, snap = C.load("tokens.json"), C.load("snapshot.json")
 
     print("registry")
-    check("exactly 203 stock tokens", reg and reg["count"] == 203, str(reg and reg["count"]))
+    if not reg:
+        print("  (no registry -- run pipeline/registry.py)")
+        dashboard_checks(); report()
+    check("exactly 203 stock tokens", reg["count"] == 203,
+          f'{reg["count"]} from {reg_src}')
     rows = reg["tokens"]
     check("oldest is WEEK @ 2026-05-27T20:17:41Z",
           rows[0]["symbol"] == "WEEK" and rows[0]["deployed"] == "2026-05-27T20:17:41Z",
@@ -50,7 +105,8 @@ def main():
 
     print("\npool registry")
     if not pl:
-        print("  (pools.json missing)"); return
+        print("  (pools.json missing -- run pipeline/pools.py for the full battery)")
+        dashboard_checks(); report()
     pools = pl["pools"]
     kinds = {}
     for p in pools.values():
@@ -116,25 +172,8 @@ def main():
         check("pools younger than 4h report no 4h value", not bad,
               f"{len(young)} young pools, {len(bad)} wrongly filled")
 
-    dash = os.path.join(os.path.dirname(C.DATA), "dashboard.html")
-    if os.path.exists(dash):
-        print("\ndashboard")
-        html = open(dash).read()
-        check("no fetch() -- data must be inlined for file://",
-              "fetch(" not in html)
-        # Scan the pipeline modules, not this file -- verify.py names the
-        # header in its own check text, which matched itself.
-        hdr = "User" + "-Agent"
-        srcdir = os.path.dirname(dash)
-        spoofers = [f for f in sorted(os.listdir(srcdir))
-                    if f.endswith(".py") and f != os.path.basename(__file__)
-                    and hdr in open(os.path.join(srcdir, f)).read()]
-        check("no browser User-Agent spoofing anywhere in the pipeline",
-              not spoofers, ", ".join(spoofers) or "clean: Blockscout never touched")
-        check("search index present", "tokenList" in html)
-
-    print(f"\n{ok} passed, {fail} failed")
-    sys.exit(1 if fail else 0)
+    dashboard_checks()
+    report()
 
 
 if __name__ == "__main__":
