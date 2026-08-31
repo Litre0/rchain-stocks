@@ -22,6 +22,7 @@ Python 3 standard library only — no dependencies, no build step, no server.
 **Refreshing is slow.** Measured: `pools.py` ~27 min and `symbols.py` ~17 min (cold only, they
 checkpoint), and `live.py` **~46 min for the default 6h window on every run** — it keeps no
 cursor and re-sweeps. Cost is linear in the window, so a routine refresh is
-`./refresh.sh --window 1h` (~10 min all in); `--window 24h` is ~3 hours. `--quick` skips
-discovery but still sweeps. Nothing is hung when quiet. Never run stages in parallel. Never
+`./refresh.sh --window 1h` (budget 20-30 min; only the 6h path is measured), and `--window
+24h` is ~3 hours. `collect.py` then prices the live set: 40 min at 6h. A full cold build
+measured 2h 10m end to end. `--quick` skips discovery but still sweeps. Nothing is hung when quiet. Never run stages in parallel. Never
 commit `data/`.

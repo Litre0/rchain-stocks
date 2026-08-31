@@ -117,9 +117,17 @@ entire window every run. That window is the dominant cost, and it scales linearl
 | `6h` *(default)* | 213k | **~46 min** (measured) |
 | `24h` | ~854k | **~3 hours** |
 
-So for a routine refresh use **`./refresh.sh --window 1h`** — about 10 minutes all in. The 6h
-default matches the shipped snapshot and shows more pools, but costs three quarters of an
-hour. Only reach for `--window 24h` deliberately.
+`collect.py` then prices whatever the sweep found, which scales with it too — **40 min** at
+the 6h window.
+
+A full cold build was measured end to end at **2h 10m** (registry 21s, pools 27 min, symbols
+17 min, live 46 min, collect 40 min, render <1s) and produced a valid dashboard with 27/27
+checks passing.
+
+So for a routine refresh use **`./refresh.sh --window 1h`**, which shrinks both the sweep and
+the pricing that follows it. Only the 6h path above is measured; budget roughly 20–30 minutes
+for a 1h window. The 6h default matches the shipped snapshot and shows more pools, but costs
+the better part of an afternoon on a cold clone.
 
 `--quick` skips pool and ticker discovery, but still runs the sweep — it does not rescue a 6h
 window. None of these stages is hung when quiet; they print little while sweeping.

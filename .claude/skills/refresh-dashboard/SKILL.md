@@ -80,9 +80,16 @@ against the same two hosts.
 > | `6h` (default) | 213k | ~46 min (measured) |
 > | `24h` | ~854k | **~3 hours** |
 >
-> So a routine refresh is `./refresh.sh --window 1h` (~10 min all in), not the default.
-> `--quick` skips pool/ticker discovery but still runs the sweep, so it does **not** rescue a
-> 6h window. Reach for `--window 24h` only deliberately.
+> `collect.py` then prices the live set, and that scales with it too: **40 min measured** at
+> the 6h window. A full cold build was **2h 10m end to end** (registry 21s, pools 27m,
+> symbols 17m, live 46m, collect 40m, render <1s) and produced a valid dashboard, 27/27
+> checks passing.
+>
+> So a routine refresh is `./refresh.sh --window 1h`, which shrinks both the sweep and the
+> live set collect must price. Only the 6h path is measured; expect roughly 20–30 min for 1h,
+> not the ~10 min a naive reading of the sweep column suggests. `--quick` skips pool/ticker
+> discovery but still runs the sweep, so it does **not** rescue a 6h window. Reach for
+> `--window 24h` only deliberately.
 
 | Stage | Cold | Warm | Notes |
 |---|---|---|---|
@@ -90,8 +97,8 @@ against the same two hosts.
 | `pools.py` | **~27 min** | seconds | sweeps from genesis once, then resumes from a cursor |
 | `symbols.py` | **~17 min** | fast | checkpointed; safe to re-run after an interrupt |
 | `live.py --window 6h` | **~46 min** | **~46 min** | **no cache — re-sweeps the full window every run, warm or cold** |
-| `collect.py` | ~5–10 min | same | **the wall-clock cost**; self-paced to ~23 req/min |
-| `render.py` | <1 s | <1 s | measured 0.25 s for 2.57 MB out |
+| `collect.py` | **~40 min** | **~40 min** | prices every live pool; self-paced to ~23 req/min; scales with the live set |
+| `render.py` | <1 s | <1 s | measured 0.25 s |
 
 `collect.py` is slow **on purpose**. GeckoTerminal's free tier is ~30 calls/min; 27/min was
 measured tripping a 429 mid-run, so it paces to ~23. Do not remove the sleep to "speed it up" —
