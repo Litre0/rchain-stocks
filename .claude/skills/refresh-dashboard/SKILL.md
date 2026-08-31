@@ -66,11 +66,17 @@ against the same two hosts.
 
 ### Expected timings — do not mistake slow for hung
 
+> **A cold start takes about an hour.** Measured on a fresh clone: `pools.py` 27 min,
+> `symbols.py` 17 min, plus the liveness sweep and pricing. It is not hung — those two stages
+> sweep the whole chain and print little while they work. Every later refresh resumes from a
+> cursor and takes minutes. If you only want current prices on pools already known, use
+> `./refresh.sh --quick`, which skips both.
+
 | Stage | Cold | Warm | Notes |
 |---|---|---|---|
 | `registry.py` | ~20 s | ~20 s | one `eth_getLogs` against the factory; measured 21 s |
-| `pools.py` | several minutes | seconds | sweeps from genesis once, then resumes from a cursor |
-| `symbols.py` | many minutes | fast | checkpointed; safe to re-run after an interrupt |
+| `pools.py` | **~27 min** | seconds | sweeps from genesis once, then resumes from a cursor |
+| `symbols.py` | **~17 min** | fast | checkpointed; safe to re-run after an interrupt |
 | `live.py --window 6h` | ~1–3 min | same | no cache; always re-sweeps the window |
 | `collect.py` | ~5–10 min | same | **the wall-clock cost**; self-paced to ~23 req/min |
 | `render.py` | <1 s | <1 s | measured 0.25 s for 2.57 MB out |

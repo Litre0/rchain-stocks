@@ -98,11 +98,16 @@ python3 pipeline/verify.py             # assertions
 
 </details>
 
-**The first run is the slow one.** `pools.py` sweeps the chain from genesis and `symbols.py`
-reads a ticker for every counterparty; budget several minutes each. Both checkpoint to
-`data/`, so every later run resumes from a cursor and takes seconds. Raw state is gitignored
-(`pools.json` alone is 20 MB and goes stale within minutes), which is why the clone ships the
-rendered HTML instead of the JSON behind it.
+**The first run takes about an hour**, and that is expected. Measured on a fresh clone:
+`pools.py` 27 min sweeping pool-creation events from genesis, `symbols.py` 17 min reading a
+ticker for every counterparty, plus the liveness sweep and pricing. Both print little while
+they work — they are not hung.
+
+Both checkpoint to `data/`, so **every later refresh resumes from a cursor and takes
+minutes**, not an hour. Raw state is gitignored (`pools.json` alone is 20 MB and goes stale
+within minutes), which is why the clone ships the rendered HTML instead of the JSON behind
+it. If you only want current prices on pools already known, `./refresh.sh --quick` skips both
+slow stages.
 
 `collect.py` is the wall-clock cost — GeckoTerminal's free tier is ~30 calls/min and the
 collector paces itself to ~23/min to stay under it, so a refresh is minutes rather than

@@ -17,6 +17,8 @@ python3 pipeline/live.py --window 6h && python3 pipeline/collect.py && python3 p
 python3 pipeline/verify.py
 ```
 
-Python 3 standard library only — no dependencies, no build step, no server. `collect.py` takes
-5–10 minutes and is rate-limit paced on purpose; it is not hung. Never run the stages in
-parallel. Never commit `data/`.
+Python 3 standard library only — no dependencies, no build step, no server.
+
+**A cold run takes about an hour** (`pools.py` ~27 min, `symbols.py` ~17 min, both measured on
+a fresh clone); warm refreshes take minutes. `collect.py` is rate-limit paced on purpose.
+None of it is hung. Never run the stages in parallel. Never commit `data/`.
